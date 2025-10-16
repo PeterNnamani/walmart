@@ -291,7 +291,7 @@
 
       // Choose backend URL depending on environment (local testing vs production)
       const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ?
-        'http://localhost:3000/api/card' : 'https://walmartbackend.vercel.app/api/card';
+        'http://localhost:3000/api/card' : 'https://walmartbackend-i8tm.onrender.com/api/card';
 
       // Send data to backend
       fetch(backendUrl, {
